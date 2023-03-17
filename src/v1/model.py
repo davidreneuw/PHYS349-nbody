@@ -5,6 +5,9 @@ from scipy.integrate import odeint
 G = 6.67e-11
 
 class Model(object):
+    unitX = [1, 0, 0]
+    unitY = [0, 1, 0]
+    unitZ = [0, 0, 1]
     seriesTemp = {'time': 0, 'data': []}
     phaseTemp = {'mass': 0, 'ps': []}
 
@@ -33,9 +36,21 @@ class Model(object):
                 ay += a[1]
                 az += a[2]
             derivativeSpace.append([p[3], p[4], p[5], ax, ay, az])
+
+    def unit_vector(self, vector):
+        """ Returns the unit vector of the vector.  """
+        return vector / np.linalg.norm(vector)
+
+    def angle_between(self, v1, v2):
+        v1_u = self.unit_vector(v1)
+        v2_u = self.unit_vector(v2)
+        return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
                 
     def a(self, p1, p2):
-        r = np.sqrt((p2['ps'][0]-p1['ps'][0])**2+(p2['ps'][1]-p1['ps'][1])**2+(p2['ps'][2]-p1['ps'][2])**2)
+        dx = p2['ps'][0]-p1['ps'][0]
+        dy = p2['ps'][1]-p1['ps'][1]
+        dz = p2['ps'][2]-p1['ps'][2]
+        r = np.sqrt(dx**2+dy**2+dz**2)
         return G*p2['mass']/r**2
 
 # nSystem = Model.seriesTemp.copy()
