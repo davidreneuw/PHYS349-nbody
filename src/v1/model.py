@@ -50,16 +50,45 @@ class Model(object):
         dx = p2['ps'][0]-p1['ps'][0]
         dy = p2['ps'][1]-p1['ps'][1]
         dz = p2['ps'][2]-p1['ps'][2]
+        vec = [dx, dy, dz]
+        alpha = self.angle_between(vec, Model.unitX)
+        beta = self.angle_between(vec, Model.unitY)
+        gamma = self.angle_between(vec, Model.unitZ)
         r = np.sqrt(dx**2+dy**2+dz**2)
-        return G*p2['mass']/r**2
+        norm = G*p2['mass']/r**2
+        acc = [norm*np.cos(alpha), norm*np.cos(beta), norm*np.cos(gamma)]
+        return acc
 
-# nSystem = Model.seriesTemp.copy()
-# p1 = Model.phaseTemp.copy()
-# p1['mass'] = 10
-# p1['ps'] = [0, 0, 0, 1, 0, 0]
-# p2 = Model.phaseTemp.copy()
-# p2['mass'] = 20
-# p2['ps'] = [2, 1, 1, 1, 0, 0]
-# nSystem['data'] = [p1, p2]
-# model = Model([nSystem])
-# print(model)
+    def integrate(f, init, t, h, method="Leapfrog"):
+        if method == 'Leapfrog':
+            # For Leapfrog, we start by finding the initial values that will help us integrate the system
+            h = t[1]-t[0]
+            v0 = solved[0][1]
+            x0 = solved[0][0]
+            # We find the first Euler half-step
+            vh2 = v0 + (h/2)*self.a(th=x0)
+            xh2 = x0 + h*vh2
+            solved.append([xh2, vh2]) # We add that half-step to our system
+            # Then from then on we find each new step. The big issue here is that we take half-steps between each time steps, and as such,
+            # we must find values for each half-steps, totalling at 2*len(t)-1 half-steps. We start at 2 since we already have the initial and first half-step
+            for i in range(2,2*len(t)-1):
+                # In our MS Teams, Prof. Hudson mentioned that position and velocity evaluated at different times could be stored in the same row.
+                # We find v and x, then append them to our system as being at the same time.
+                v = solved[i-2][1]+h*self.a(solved[i-1][0])
+                x = solved[i-2][0]+h*solved[i-1][1]
+                solved.append([x,v])
+            del solved[1::2] # We remove all odd index elements, which correspond to all the half-steps
+            self.state = solved[-1]
+
+
+nSystem = Model.seriesTemp.copy()
+p1 = Model.phaseTemp.copy()
+p1['mass'] = 10
+p1['ps'] = [0, 0, 0, 1, 0, 0]
+p2 = Model.phaseTemp.copy()
+p2['mass'] = 6e24
+p2['ps'] = [2, 1, 1, 1, 0, 0]
+nSystem['data'] = [p1, p2]
+model = Model([nSystem])
+model.a(p1,p2)
+
