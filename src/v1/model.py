@@ -46,7 +46,7 @@ class Model(object):
         v2_u = self.unit_vector(v2)
         return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
     
-    # Test
+    # Test 2
                 
     def a(self, p1, p2):
         dx = p2['ps'][0]-p1['ps'][0]
