@@ -45,6 +45,8 @@ class Model(object):
         v1_u = self.unit_vector(v1)
         v2_u = self.unit_vector(v2)
         return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+    
+    # Test
                 
     def a(self, p1, p2):
         dx = p2['ps'][0]-p1['ps'][0]
@@ -58,6 +60,8 @@ class Model(object):
         norm = G*p2['mass']/r**2
         acc = [norm*np.cos(alpha), norm*np.cos(beta), norm*np.cos(gamma)]
         return acc
+    
+    
 
     def integrate(f, init, t, h, method="Leapfrog"):
         if method == 'Leapfrog':
