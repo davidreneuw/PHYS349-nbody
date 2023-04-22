@@ -4,7 +4,7 @@ from scipy.integrate import odeint
 
 G = 6.67e-11
 
-class Model(object):
+class Model1(object):
     unitX = [1, 0, 0]
     unitY = [0, 1, 0]
     unitZ = [0, 0, 1]
@@ -26,8 +26,9 @@ class Model(object):
     
     def dpdt(self, system, t=0):
         derivativeSpace = []
-        for i, p in enumerate(self.system['data'][t]):
-            otherP:list = self.system['data'][t].copy()
+        for i, p in enumerate(self.system[t]['data']):
+            print(p)
+            otherP:list = self.system[t]['data'].copy()
             otherP.pop(i)
             ax, ay, az = 0, 0, 0
             for other in otherP:
@@ -35,7 +36,8 @@ class Model(object):
                 ax += a[0]
                 ay += a[1]
                 az += a[2]
-            derivativeSpace.append([p[3], p[4], p[5], ax, ay, az])
+            derivativeSpace.append([p['ps'][3], p['ps'][4], p['ps'][5], ax, ay, az])
+        return derivativeSpace
 
     def unit_vector(self, vector):
         """ Returns the unit vector of the vector.  """
@@ -53,9 +55,9 @@ class Model(object):
         dy = p2['ps'][1]-p1['ps'][1]
         dz = p2['ps'][2]-p1['ps'][2]
         vec = [dx, dy, dz]
-        alpha = self.angle_between(vec, Model.unitX)
-        beta = self.angle_between(vec, Model.unitY)
-        gamma = self.angle_between(vec, Model.unitZ)
+        alpha = self.angle_between(vec, Model1.unitX)
+        beta = self.angle_between(vec, Model1.unitY)
+        gamma = self.angle_between(vec, Model1.unitZ)
         r = np.sqrt(dx**2+dy**2+dz**2)
         norm = G*p2['mass']/r**2
         acc = [norm*np.cos(alpha), norm*np.cos(beta), norm*np.cos(gamma)]
@@ -85,14 +87,14 @@ class Model(object):
             self.state = solved[-1]
 
 
-nSystem = Model.seriesTemp.copy()
-p1 = Model.phaseTemp.copy()
+nSystem = Model1.seriesTemp.copy()
+p1 = Model1.phaseTemp.copy()
 p1['mass'] = 10
 p1['ps'] = [0, 0, 0, 1, 0, 0]
-p2 = Model.phaseTemp.copy()
+p2 = Model1.phaseTemp.copy()
 p2['mass'] = 6e24
 p2['ps'] = [2, 1, 1, 1, 0, 0]
 nSystem['data'] = [p1, p2]
-model = Model([nSystem])
+model = Model1([nSystem])
 model.a(p1,p2)
 

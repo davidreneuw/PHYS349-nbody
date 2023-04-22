@@ -1,0 +1,6 @@
+{
+  "python.analysis.extraPaths": [
+    "/home/drene/.vscode-server/extensions/databricks.databricks-0.3.4-linux-x64/resources/python/stubs",
+    "./src/v1"
+  ]
+}
