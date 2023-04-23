@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
+import copy
 
 G = 6.67e-11
 
 class Model1(object):
+    axisLabel = ['x', 'y', 'z', 'vx', 'vy', 'vz']
     unitX = [1, 0, 0]
     unitY = [0, 1, 0]
     unitZ = [0, 0, 1]
@@ -26,9 +28,8 @@ class Model1(object):
     
     def dpdt(self, system, t=0):
         derivativeSpace = []
-        for i, p in enumerate(self.system[t]['data']):
-            print(p)
-            otherP:list = self.system[t]['data'].copy()
+        for i, p in enumerate(system[t]['data']):
+            otherP:list = copy.deepcopy(system[t]['data'])
             otherP.pop(i)
             ax, ay, az = 0, 0, 0
             for other in otherP:
@@ -47,54 +48,111 @@ class Model1(object):
         v1_u = self.unit_vector(v1)
         v2_u = self.unit_vector(v2)
         return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
-    
-    # Test 3
                 
-    def a(self, p1, p2):
+    def a(self, p1, p2, softening=0.1):
         dx = p2['ps'][0]-p1['ps'][0]
         dy = p2['ps'][1]-p1['ps'][1]
         dz = p2['ps'][2]-p1['ps'][2]
         vec = [dx, dy, dz]
-        alpha = self.angle_between(vec, Model1.unitX)
-        beta = self.angle_between(vec, Model1.unitY)
-        gamma = self.angle_between(vec, Model1.unitZ)
-        r = np.sqrt(dx**2+dy**2+dz**2)
+        alpha, beta, gamma = self.angle_between(vec, Model1.unitX),self.angle_between(vec, Model1.unitY), self.angle_between(vec, Model1.unitZ)
+        r = np.sqrt(dx**2+dy**2+dz**2+softening**2)
         norm = G*p2['mass']/r**2
         acc = [norm*np.cos(alpha), norm*np.cos(beta), norm*np.cos(gamma)]
+        for i, val in enumerate(acc):
+            if np.abs(val) < 1e-8:
+                acc[i] = 0
         return acc
     
     
 
-    def integrate(f, init, t, h, method="Leapfrog"):
-        if method == 'Leapfrog':
-            # For Leapfrog, we start by finding the initial values that will help us integrate the system
-            h = t[1]-t[0]
-            v0 = solved[0][1]
-            x0 = solved[0][0]
-            # We find the first Euler half-step
-            vh2 = v0 + (h/2)*self.a(th=x0)
-            xh2 = x0 + h*vh2
-            solved.append([xh2, vh2]) # We add that half-step to our system
-            # Then from then on we find each new step. The big issue here is that we take half-steps between each time steps, and as such,
-            # we must find values for each half-steps, totalling at 2*len(t)-1 half-steps. We start at 2 since we already have the initial and first half-step
-            for i in range(2,2*len(t)-1):
-                # In our MS Teams, Prof. Hudson mentioned that position and velocity evaluated at different times could be stored in the same row.
-                # We find v and x, then append them to our system as being at the same time.
-                v = solved[i-2][1]+h*self.a(solved[i-1][0])
-                x = solved[i-2][0]+h*solved[i-1][1]
-                solved.append([x,v])
-            del solved[1::2] # We remove all odd index elements, which correspond to all the half-steps
-            self.state = solved[-1]
+    def integrate(self, f, t):
+        # For Leapfrog, we start by finding the initial values that will help us integrate the system
+        h = t[1]-t[0]
+        solved = []
+
+        initTime = copy.deepcopy(self.seriesTemp)
+        initTime['time'] = t[0]
+        h2Time = copy.deepcopy(self.seriesTemp)
+        h2Time['time'] = t[0]+h/2
+        for j, p in enumerate(self.system[0]['data']):
+            initSpace = copy.deepcopy(self.phaseTemp)
+            h2Space = copy.deepcopy(self.phaseTemp)
+            initSpace['mass'] = p['mass']
+            initSpace['ps'] = p['ps']
+
+            x0, y0, z0 = initSpace['ps'][0], initSpace['ps'][1], initSpace['ps'][2]
+            vx0, vy0, vz0 = initSpace['ps'][3], initSpace['ps'][4], initSpace['ps'][5]
+            initDpdt = f(self.system, t=0)
+            ax0, ay0, az0 = initDpdt[j][3], initDpdt[j][4], initDpdt[j][5]
+            vxh2, vyh2, vzh2 = vx0 + (h/2)*ax0, vy0 + (h/2)*ay0, vz0 + (h/2)*az0
+            xh2, yh2, zh2 = x0 + h*vx0, y0 + h*vy0, z0 + h*vz0
+
+            h2Space['mass'] = p['mass']
+            h2Space['ps'] = [xh2, yh2, zh2, vxh2, vyh2, vzh2]
+            initTime['data'].append(initSpace)
+            h2Time['data'].append(h2Space)
+            
+        solved.append(initTime)
+        solved.append(h2Time)
+
+        # Then from then on we find each new step. The big issue here is that we take half-steps between each time steps, and as such,
+        # we must find values for each half-steps, totalling at 2*len(t)-1 half-steps. We start at 2 since we already have the initial and first half-step
+        for i in range(2,2*len(t)-1):
+            timeSeries = copy.deepcopy(self.seriesTemp)
+            timeSeries['time'] = t[i//2]
+            for j, p in enumerate(solved[i-1]['data']):
+                phaseSpace = copy.deepcopy(self.phaseTemp)
+                t2 = solved[i-2]['data'][j]['ps']
+                t1 = solved[i-1]['data'][j]['ps']
+                a = f(solved, t=i-1)[j][3:]
+                vx, vy, vz = t2[3]+h*a[0], t2[4]+h*a[1], t2[5]+h*a[2]
+                x, y, z = t2[0]+h*t1[3], t2[1]+h*t1[4], t2[2]+h*t1[5]
+                phaseSpace['mass'] = p['mass']
+                phaseSpace['ps'] = [x, y, z, vx, vy, vz]
+                timeSeries['data'].append(phaseSpace)
+            solved.append(timeSeries)
+        del solved[1::2] # We remove all odd index elements, which corresponds to all the half-steps
+        return solved
+    
+    def getPos(self, timeSeries, axis=0):
+        """Get position series of each atom given an axis.
+
+        Args:
+            timeSeries (list): List of time steps dictionaries generated by euler(), rk2() and rk4()
+            axis (int, optional): Axis to use. Defaults to 0.
+            initial (boolean, optional): True if the input used for timeSeries is instead an initial system. Defaults to False.
+
+        Returns:
+            list: List of position series for each atom of the given axis.
+        """
+        pos = np.array([[s['data'][i]['ps'][axis] for i in range(len(s['data']))] for s in timeSeries]).T.tolist()
+        return pos
+
+    def spacePlot(self, system, ax1=0, ax2=1):
+        fig, ax = plt.subplots()
+        pos1= self.getPos(system, axis=ax1)
+        pos2= self.getPos(system, axis=ax2)
+        for i, x in enumerate(pos1):
+            ax.plot(x, pos2[i], label=f'Atom {i+1}', markevery=100, marker='o', ms=4, ls='-')
+        ax.legend()
+        ax.set_ylabel(f"{self.axisLabel[ax2]} position in natural units")
+        ax.set_xlabel(f"{self.axisLabel[ax1]} position in natural units")
+        title = f"{self.axisLabel[ax2]} as a function of {self.axisLabel[ax1]}"
+        ax.set_title(title)
+        fig.savefig(f"test.png")
 
 
-nSystem = Model1.seriesTemp.copy()
-p1 = Model1.phaseTemp.copy()
-p1['mass'] = 10
-p1['ps'] = [0, 0, 0, 1, 0, 0]
-p2 = Model1.phaseTemp.copy()
-p2['mass'] = 6e24
-p2['ps'] = [2, 1, 1, 1, 0, 0]
+nSystem = copy.deepcopy(Model1.seriesTemp)
+p1 = copy.deepcopy(Model1.phaseTemp)
+p1['mass'] = 65
+p1['ps'] = [6_378_000, 0, 0, 0, 0, 0]
+p2 = copy.deepcopy(Model1.phaseTemp)
+p2['mass'] = 5.92e24
+p2['ps'] = [0, 0, 0, 0, 0, 0]
 nSystem['data'] = [p1, p2]
 model = Model1([nSystem])
-model.a(p1,p2)
+print(model.a(p1, p2))
+t = np.arange(0, 900, 0.1)
+solved = model.integrate(model.dpdt, t)
+model.spacePlot(solved)
 
