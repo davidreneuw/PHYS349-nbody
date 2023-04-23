@@ -3,13 +3,12 @@ import matplotlib.pyplot as plt
 from scipy.integrate import odeint
 import copy
 
-G = 6.67e-11
-
 class Model1(object):
     """Model 1: N-Body Simulation"""
 
     # Class constants
     axisLabel = ['x', 'y', 'z', 'vx', 'vy', 'vz']
+    G = 6.67e-11
     M_E = 5.972e24
     M_S = 1.989e30
     AU = 1.5041e11
@@ -19,7 +18,7 @@ class Model1(object):
     unitX = [1, 0, 0]
     unitY = [0, 1, 0]
     unitZ = [0, 0, 1]
-    seriesTemp = {'time': 0, 'data': [], 'energy': None}
+    seriesTemp = {'time': 0, 'data': []}
     phaseTemp = {'mass': 0, 'ps': []}
 
     def __init__(self, system):
@@ -28,7 +27,7 @@ class Model1(object):
         Args:
             system (list | str): List of time series, or string of system name: "Lagrange L2", "Lagrange L4", "Galaxy"
         """
-        self.setSystem(None)
+        self.setSystem([{}])
         if type(system) is list:
             self.setSystem(system)
         elif "Lagrange" in system:
@@ -63,7 +62,7 @@ class Model1(object):
             list: List of time series for L2 and L4
         """
         Earth = copy.deepcopy(self.phaseTemp)
-        Earth['mass'], Earth['ps'] = self.M_E, [self.AU, 0, 0, 0, self.V_E, 0]
+        Earth['mass'], Earth['ps'] = self.M_E, [r, 0, 0, 0, self.V_E, 0]
         Sun = copy.deepcopy(self.phaseTemp)
         Sun['mass'], Sun['ps'] = self.M_S, [0, 0, 0, 0, 0, 0]
         SatelliteL2 = copy.deepcopy(self.phaseTemp)
@@ -77,10 +76,34 @@ class Model1(object):
         return [[timeSeriesL2], [timeSeriesL4]]
 
     def getGalaxySystem(self):
+        """Creates a galaxy system
+
+        Returns:
+            list: List of time series for galaxy system
+        """
         mainGalaxy = copy.deepcopy(self.phaseTemp)
-        mainGalaxy['mass'], mainGalaxy['ps'] = 1e11*self.M_S, [0, 0, 0, 0, 0, 0]
+        mainGalaxy['mass'], mainGalaxy['ps'] = 1e11*self.M_S, [0, 0, 0, 0, 0, 0] #TODO
         otherGalaxy = copy.deepcopy(self.phaseTemp)
-        otherGalaxy['mass'], otherGalaxy['ps'] = 1e10*self.M_S, [1e11, 0, 0, 0, 0, 0]
+        otherGalaxy['mass'], otherGalaxy['ps'] = 1e10*self.M_S, [3.086e21, 0, 0, 0, 0, 0] #TODO
+        starRing1, starRing2, starRing3 = [], [], []
+        angles = np.arange(0, 2*np.pi, 2*np.pi/6)
+        r1 = 1.543e20
+        r2 = 2*r1
+        r3 = 3*r1
+        for angle in angles:
+            star1 = copy.deepcopy(self.phaseTemp)
+            star2 = copy.deepcopy(self.phaseTemp)
+            star3 = copy.deepcopy(self.phaseTemp)
+            star1['mass'], star1['ps'] = 0.001, [r1*np.cos(angle), r1*np.sin(angle), 0, 0, 0, 0] #TODO
+            starRing1.append(star1)
+            star2['mass'], star2['ps'] = 0.001, [r2*np.cos(angle), r2*np.sin(angle), 0, 0, 0, 0] #TODO
+            starRing2.append(star2)
+            star3['mass'], star3['ps'] = 0.001, [r3*np.cos(angle), r3*np.sin(angle), 0, 0, 0, 0] #TODO
+            starRing3.append(star3)
+        timeSeries = copy.deepcopy(self.seriesTemp)
+        timeSeries['data'] = [mainGalaxy, otherGalaxy, *starRing1, *starRing2, *starRing3]
+        return [timeSeries]
+        
         
     def __str__(self):
         """Creates a string representation of the object
@@ -155,7 +178,7 @@ class Model1(object):
         vec = [dx, dy, dz]
         alpha, beta, gamma = self.angle_between(vec, Model1.unitX),self.angle_between(vec, Model1.unitY), self.angle_between(vec, Model1.unitZ)
         r = np.sqrt(dx**2+dy**2+dz**2+softening**2)
-        norm = G*p2['mass']/r**2
+        norm = self.G*p2['mass']/r**2
         acc = [norm*np.cos(alpha), norm*np.cos(beta), norm*np.cos(gamma)]
         for i, val in enumerate(acc):
             if np.abs(val) < 1e-8:
@@ -235,31 +258,15 @@ class Model1(object):
         pos = np.array([[s['data'][i]['ps'][axis] for i in range(len(s['data']))] for s in timeSeries]).T.tolist()
         return pos
 
-    def spacePlot(self, system, ax1=0, ax2=1):
+    def spacePlot(self, system, ax1=0, ax2=1, markevery=100):
         fig, ax = plt.subplots()
         pos1= self.getPos(system, axis=ax1)
         pos2= self.getPos(system, axis=ax2)
         for i, x in enumerate(pos1):
-            ax.plot(x, pos2[i], label=f'Atom {i+1}', markevery=100, marker='o', ms=4, ls='-')
+            ax.plot(x, pos2[i], label=f'Atom {i+1}', markevery=markevery, marker='o', ms=4, ls='-')
         ax.legend()
         ax.set_ylabel(f"{self.axisLabel[ax2]} position in natural units")
         ax.set_xlabel(f"{self.axisLabel[ax1]} position in natural units")
         title = f"{self.axisLabel[ax2]} as a function of {self.axisLabel[ax1]}"
         ax.set_title(title)
         fig.savefig(f"test.png")
-
-
-nSystem = copy.deepcopy(Model1.seriesTemp)
-p1 = copy.deepcopy(Model1.phaseTemp)
-p1['mass'] = 65
-p1['ps'] = [6_378_000, 0, 0, 0, 0, 0]
-p2 = copy.deepcopy(Model1.phaseTemp)
-p2['mass'] = 5.92e24
-p2['ps'] = [0, 0, 0, 0, 0, 0]
-nSystem['data'] = [p1, p2]
-model = Model1([nSystem])
-print(model.a(p1, p2))
-t = np.arange(0, 900, 0.1)
-solved = model.integrate(model.dpdt, t)
-model.spacePlot(solved)
-
