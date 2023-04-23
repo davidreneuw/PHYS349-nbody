@@ -2,9 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('./src/v1')
-sys.path.append('./src/v2')
 from model1 import Model1 as m1
-from model2 import Model2 as m2
 import assertpy as ap
 
 

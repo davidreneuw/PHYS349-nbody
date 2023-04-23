@@ -6,17 +6,88 @@ import copy
 G = 6.67e-11
 
 class Model1(object):
+    """Model 1: N-Body Simulation"""
+
+    # Class constants
     axisLabel = ['x', 'y', 'z', 'vx', 'vy', 'vz']
+    M_E = 5.972e24
+    M_S = 1.989e30
+    AU = 1.5041e11
+    V_E = 3.0287e4
+    L2 = [1.01*AU, 0, 0]
+    L4 = [0.5e11, 0.866e11, 0]
     unitX = [1, 0, 0]
     unitY = [0, 1, 0]
     unitZ = [0, 0, 1]
-    seriesTemp = {'time': 0, 'data': []}
+    seriesTemp = {'time': 0, 'data': [], 'energy': None}
     phaseTemp = {'mass': 0, 'ps': []}
 
-    def __init__(self, system) -> None:
-        self.system = system
+    def __init__(self, system):
+        """Initializes the model
+
+        Args:
+            system (list | str): List of time series, or string of system name: "Lagrange L2", "Lagrange L4", "Galaxy"
+        """
+        self.setSystem(None)
+        if type(system) is list:
+            self.setSystem(system)
+        elif "Lagrange" in system:
+            if "L2" in system:
+                self.setSystem(self.getLagrangeSystems()[0])
+            elif "L4" in system:
+                self.setSystem(self.getLagrangeSystems()[1])
+        elif "Galaxy" in system:
+            self.setSystem(self.getGalaxySystem())
         
-    def __str__(self) -> str:
+
+    def setSystem(self, system):
+        """Sets the system
+
+        Args:
+            system (list): List of time series
+
+        Raises:
+            TypeError: System must be a list of time series
+            TypeError: System must be a list of time series
+        """
+        if type(system) is not list:
+            raise TypeError("System must be a list of time series")
+        if type(system[0]) is not dict:
+            raise TypeError("System must be a list of time series")
+        self.system = system
+    
+    def getLagrangeSystems(self):
+        """Gets the Lagrange L2 and L4 systems
+
+        Returns:
+            list: List of time series for L2 and L4
+        """
+        Earth = copy.deepcopy(self.phaseTemp)
+        Earth['mass'], Earth['ps'] = self.M_E, [self.AU, 0, 0, 0, self.V_E, 0]
+        Sun = copy.deepcopy(self.phaseTemp)
+        Sun['mass'], Sun['ps'] = self.M_S, [0, 0, 0, 0, 0, 0]
+        SatelliteL2 = copy.deepcopy(self.phaseTemp)
+        SatelliteL2['mass'], SatelliteL2['ps'] = 0.001, [*self.L2, 0, 0, 0]
+        SatelliteL4 = copy.deepcopy(self.phaseTemp)
+        SatelliteL4['mass'], SatelliteL4['ps'] = 0.001, [*self.L4, 0, 0, 0]
+        timeSeriesL2 = copy.deepcopy(self.seriesTemp)
+        timeSeriesL2['data'] = [Earth, Sun, SatelliteL2]
+        timeSeriesL4 = copy.deepcopy(self.seriesTemp)
+        timeSeriesL4['data'] = [Earth, Sun, SatelliteL4]
+        return [[timeSeriesL2], [timeSeriesL4]]
+
+    def getGalaxySystem(self):
+        mainGalaxy = copy.deepcopy(self.phaseTemp)
+        mainGalaxy['mass'], mainGalaxy['ps'] = 1e11*self.M_S, [0, 0, 0, 0, 0, 0]
+        otherGalaxy = copy.deepcopy(self.phaseTemp)
+        otherGalaxy['mass'], otherGalaxy['ps'] = 1e10*self.M_S, [1e11, 0, 0, 0, 0, 0]
+        
+    def __str__(self):
+        """Creates a string representation of the object
+
+        Returns:
+            str: String representation of the object
+        """
         __out = ""
         for series in self.system:
             __out += "="*100+"\n"
@@ -27,6 +98,15 @@ class Model1(object):
         return __out
     
     def dpdt(self, system, t=0):
+        """Calculates the derivative of the phase space
+
+        Args:
+            system (list): List of time series
+            t (int, optional): Time at which to find the derivative. Defaults to 0.
+
+        Returns:
+            list: list of phase space derivatives
+        """
         derivativeSpace = []
         for i, p in enumerate(system[t]['data']):
             otherP:list = copy.deepcopy(system[t]['data'])
@@ -41,15 +121,34 @@ class Model1(object):
         return derivativeSpace
 
     def unit_vector(self, vector):
-        """ Returns the unit vector of the vector.  """
+        """ Returns the unit vector of the vector.  
+        
+        Returns:
+            list: Unit vector
+        """
         return vector / np.linalg.norm(vector)
 
     def angle_between(self, v1, v2):
+        """ Returns the angle in radians between vectors 'v1' and 'v2'.
+        
+        Returns:
+            float: Angle in radians
+        """
         v1_u = self.unit_vector(v1)
         v2_u = self.unit_vector(v2)
         return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
                 
-    def a(self, p1, p2, softening=0.1):
+    def a(self, p1, p2, softening=0.01):
+        """Calculates the acceleration between two particles
+
+        Args:
+            p1 (dict): Phase space dictionary for particle 1
+            p2 (dict): Phase space dictionary for particle 2
+            softening (float, optional): Softening parameter. Defaults to 0.01.
+
+        Returns:
+            list: Acceleration vector
+        """
         dx = p2['ps'][0]-p1['ps'][0]
         dy = p2['ps'][1]-p1['ps'][1]
         dz = p2['ps'][2]-p1['ps'][2]
@@ -62,10 +161,17 @@ class Model1(object):
             if np.abs(val) < 1e-8:
                 acc[i] = 0
         return acc
-    
-    
 
     def integrate(self, f, t):
+        """Integrates the system using the Leapfrog method
+
+        Args:
+            f (function): dpdt function
+            t (list): List of time values
+
+        Returns:
+            list: List of time series for the solved system
+        """
         # For Leapfrog, we start by finding the initial values that will help us integrate the system
         h = t[1]-t[0]
         solved = []
@@ -112,6 +218,7 @@ class Model1(object):
                 timeSeries['data'].append(phaseSpace)
             solved.append(timeSeries)
         del solved[1::2] # We remove all odd index elements, which corresponds to all the half-steps
+        self.setSystem(solved)
         return solved
     
     def getPos(self, timeSeries, axis=0):
