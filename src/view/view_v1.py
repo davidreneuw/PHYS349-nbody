@@ -1,8 +1,12 @@
 import tkinter as tk
+import numpy as np
+from tkvideo import tkvideo
 from tkinter import ttk
 import os
 import sys
 sys.path.append('./src/tests')
+sys.path.append('./src/v1')
+from model1 import Model1
 from test_v1 import Tests
 import copy
 

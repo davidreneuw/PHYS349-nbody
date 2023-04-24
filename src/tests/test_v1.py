@@ -11,20 +11,23 @@ from datetime import datetime
 # Constants
 tempSystem = [
     {'time': 0, 'data': [
-        {'mass': 0, 'ps': [0, 0, 0, 0, 0, 0]},
-        {'mass': 0, 'ps': [0, 0, 0, 0, 0, 0]}
+        {'mass': 0, 'ps': [0, 0, 0, 0, 0, 0], 'name': ''},
+        {'mass': 0, 'ps': [0, 0, 0, 0, 0, 0], 'name': ''},
     ]}
 ]
 
 Me = copy.deepcopy(Model1.phaseTemp)
 Me['mass'] = 65
 Me['ps'] = [6_378_000, 0, 0, 0, 0, 0]
+Me['name'] = 'David'
 Earth = copy.deepcopy(Model1.phaseTemp)
 Earth['mass'] = 5.92e24
 Earth['ps'] = [0, 0, 0, 0, 0, 0]
+Earth['name'] = 'Earth'
 OtherEarth = copy.deepcopy(Model1.phaseTemp)
 OtherEarth['mass'] = 5.92e24
 OtherEarth['ps'] = [2*6_378_000, 0, 0, 0, 0, 0]
+OtherEarth['name'] = 'Other Earth'
 
 class TestAcceleration(unittest.TestCase):
     """Tests relating to the acceleration function and the derivative function  """
