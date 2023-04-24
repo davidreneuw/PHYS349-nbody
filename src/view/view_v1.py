@@ -1,6 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
+import os
+import sys
+sys.path.append('./src/tests')
+from test_v1 import Tests
 import copy
+
 class View(object):
 
     sceneTemp = {
@@ -22,8 +27,9 @@ class View(object):
         lbl_select = ttk.Label(self.root, text="Please select a case study:")
         btn_lagrange = ttk.Button(self.root, text="Lagrange points", width=20, command=lambda: self.Lagrange())
         btn_galaxy = ttk.Button(self.root, text="Galaxy collision", width=20, command=self.Galaxy)
+        btn_test = ttk.Button(self.root, text="Run tests", width=20, command=self.Tests)
         menu_scene = copy.deepcopy(self.sceneTemp)
-        menu_scene['data'] = [lbl_select, btn_lagrange, btn_galaxy]
+        menu_scene['data'] = [lbl_select, btn_lagrange, btn_galaxy, btn_test]
         self.sceneLst.append(menu_scene)
 
         frame_lagrange = tk.Frame(self.root)
@@ -73,6 +79,9 @@ class View(object):
     
     def Galaxy(self):
         self.build(self.sceneLst[4])
+    
+    def Tests(self):
+        os.system('python3 -m unittest ./src/tests/test_v1.py')
 
     def setGeo(self, size):
         self.width = size[0]
@@ -103,7 +112,7 @@ class View(object):
 
     
 if __name__ == "__main__":
-    View()
+    view = View()
 
 
 

@@ -122,11 +122,14 @@ class TestIntegration(unittest.TestCase):
         self.assertGreater(disp_Earth, 10)
         self.assertGreater(disp_OtherEarth, 10)
 
+class Tests(object):
+    def __init__(self) -> None:
+        now = str(datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0]
+        log_file = f'./logs/{now}.txt'
+        with open(log_file, "w") as f:
+            runner = unittest.TextTestRunner(f, verbosity=2)
+            unittest.main(testRunner=runner, verbosity=2)
 
 
-if __name__ == '__main__':
-    now = str(datetime.now()).replace(" ", "_").replace(":", "_").split(".")[0]
-    log_file = f'./logs/{str(now)}.txt'
-    with open(log_file, "w") as f:
-       runner = unittest.TextTestRunner(f, verbosity=2)
-       unittest.main(testRunner=runner, verbosity=2)
+if __name__ == "__main__":
+    Tests()

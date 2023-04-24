@@ -1,0 +1,17 @@
+test_magnitude (__main__.TestAcceleration)
+Tests the magnitude of the acceleration of the me on the Earth ... ok
+test_orientation (__main__.TestAcceleration)
+Tests the orientation of the acceleration of 2 particles aligned in the x axis ... ok
+test_3body (__main__.TestIntegration)
+Tests the integration of 3 particles ... ok
+test_acc (__main__.TestIntegration)
+Tests the integration of a particle with acceleration ... ok
+test_conservation_energy (__main__.TestIntegration)
+Tests the conservation of energy in the system ... ok
+test_no_acc (__main__.TestIntegration)
+Tests the integration of a particle with no acceleration ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.607s
+
+OK
