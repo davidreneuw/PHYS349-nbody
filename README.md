@@ -50,7 +50,7 @@ The model is located in `src/v2/model1.py`. It contains a constructor that allow
 
 # User interface
 
-It is not fully implemented yet, but it is located in `src/view/`. It is built using `tkinter`. The "Run tests" button actually runs the test suite and logs the results in `logs/`. The 3rd picture shows where the L2 observation animation would appear.
+It is not fully implemented yet, but it is located in `src/view/`. It is built using `tkinter`. The "Run tests" button actually runs the test suite and logs the results in `logs/`. The 3rd picture shows where the L2 observation animation would appear.'
 
 ![](assets/menu1.png)
 
