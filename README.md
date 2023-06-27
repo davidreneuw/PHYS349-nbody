@@ -2,7 +2,7 @@
 
 As part of my term project for University of Waterloo's PHYS349 - Advanced Computational Physics, I will develop a model for the gravitational $n$-body problem, with an extra challenge to create a user interface.
 
-## File structure
+### File structure
 
 ```
 |- assets

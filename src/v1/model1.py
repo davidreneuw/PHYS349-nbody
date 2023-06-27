@@ -330,3 +330,5 @@ class Model1(object):
         if save:
             anim.save(filename, writer='ffmpeg', fps=30)
         return anim
+    
+    
